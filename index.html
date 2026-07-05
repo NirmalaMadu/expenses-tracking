@@ -9,12 +9,41 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* --- Dynamic Theme Variables --- */
         :root {
+            color-scheme: light;
             --primary: #2C3E50;
+            --primary-text: #ffffff;
             --success: #27AE60;
             --danger: #E74C3C;
             --bg-color: #F4F7F6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #7f8c8d;
+            --border-color: #ecf0f1;
+            --input-bg: #ffffff;
+            --input-border: #bdc3c7;
+            --item-alt-bg: #f9f9f9;
             --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --chart-border: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            color-scheme: dark;
+            --primary: #4da8da;
+            --primary-text: #121212;
+            --success: #4caf50;
+            --danger: #ef5350;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --border-color: #333333;
+            --input-bg: #2c2c2c;
+            --input-border: #555555;
+            --item-alt-bg: #252525;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            --chart-border: #1e1e1e;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -22,51 +51,107 @@
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            color: #333;
+            color: var(--text-main);
             margin: 0;
-            padding: 20px; /* Reduced body padding to maximize screen space */
+            padding: 20px;
             display: flex;
             justify-content: center;
+            transition: background-color 0.3s, color 0.3s;
         }
+
+        /* --- Theme Switcher --- */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        h2.main-title { 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 2em; 
+        }
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        .theme-switch {
+            display: inline-block;
+            height: 34px;
+            position: relative;
+            width: 66px;
+        }
+        .theme-switch input { display: none; }
+        .slider {
+            background-color: #bdc3c7;
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8px;
+        }
+        .slider .sun { font-size: 14px; z-index: 1; }
+        .slider .moon { font-size: 14px; z-index: 1; }
+        .slider:before {
+            background-color: white;
+            bottom: 4px;
+            content: "";
+            height: 26px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 26px;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        input:checked + .slider { background-color: #2C3E50; }
+        input:checked + .slider:before { transform: translateX(32px); }
 
         /* --- Modal Styles --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); z-index: 9999;
+            background: rgba(0, 0, 0, 0.8); z-index: 9999;
             display: flex; justify-content: center; align-items: center;
         }
         .modal-content {
-            background: white; padding: 30px; border-radius: 12px;
-            max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            background: var(--card-bg); padding: 30px; border-radius: 12px;
+            max-width: 500px; width: 90%; box-shadow: var(--box-shadow);
+            color: var(--text-main);
         }
         .modal-content h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
-        .modal-content p { line-height: 1.6; color: #444; font-size: 0.95em; margin-bottom: 15px;}
+        .modal-content p { line-height: 1.6; color: var(--text-main); font-size: 0.95em; margin-bottom: 15px;}
         .checkbox-group {
             display: flex; align-items: flex-start; gap: 10px; margin: 25px 0;
-            background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ecf0f1; cursor: pointer;
+            background: var(--bg-color); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;
         }
         .checkbox-group input { margin-top: 3px; cursor: pointer; width: 18px; height: 18px; flex: none;}
         .checkbox-group span { font-weight: bold; color: var(--primary); }
         .modal-btn { width: 100%; padding: 12px; font-size: 1.05em; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s;}
-        .modal-btn:disabled { background: #bdc3c7; cursor: not-allowed; color: #7f8c8d; }
-        .modal-btn:not(:disabled) { background: var(--primary); color: white; }
-        .modal-btn:not(:disabled):hover { background: #1a252f; }
+        .modal-btn:disabled { background: var(--input-border); cursor: not-allowed; color: var(--text-muted); }
+        .modal-btn:not(:disabled) { background: var(--primary); color: var(--primary-text); }
+        .modal-btn:not(:disabled):hover { opacity: 0.9; }
         
-        #update-features-list { padding-left: 20px; margin-bottom: 25px; color: #444; line-height: 1.6; }
+        #update-features-list { padding-left: 20px; margin-bottom: 25px; color: var(--text-main); line-height: 1.6; }
         #update-features-list li { margin-bottom: 8px; border: none; padding: 0; background: transparent; display: list-item; }
 
-        /* --- Main App Layout (Full Screen Design) --- */
+        /* --- Main App Layout --- */
         .container {
-            background: white; 
+            background: var(--card-bg); 
             padding: 30px 40px; 
             border-radius: 12px;
             box-shadow: var(--box-shadow); 
-            width: 98%; /* Uses almost entire width */
-            max-width: 1800px; /* Allows stretching on ultrawide monitors */
+            width: 98%; 
+            max-width: 1800px; 
             margin: 0 auto;
+            transition: background-color 0.3s;
         }
-
-        h2.main-title { text-align: center; margin-top: 0; margin-bottom: 30px; color: var(--primary); font-size: 2em; }
 
         .app-layout {
             display: flex;
@@ -74,110 +159,117 @@
             align-items: flex-start;
         }
         .main-dashboard { 
-            flex: 1; /* Stretches to fill all remaining horizontal space */
-            min-width: 0; /* Prevents flexbox blowouts */
+            flex: 1; 
+            min-width: 0; 
         }
         .history-sidebar { 
-            width: 450px; /* Locked comfortable width for reading text */
-            flex-shrink: 0; /* Prevents sidebar from squishing */
-            background: #fdfdfd; 
+            width: 450px; 
+            flex-shrink: 0; 
+            background: var(--card-bg); 
             padding: 20px; 
             border-radius: 12px; 
-            border: 1px solid #ecf0f1;
+            border: 1px solid var(--border-color);
             position: sticky; 
             top: 20px;
             max-height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .month-picker {
             display: flex; justify-content: center; align-items: center; gap: 15px;
-            background: #ecf0f1; padding: 15px; border-radius: 8px; margin-bottom: 25px;
+            background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;
+            border: 1px solid var(--border-color);
         }
         .month-picker label { font-weight: bold; color: var(--primary); }
-        .month-picker input { padding: 8px 12px; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 1.1em; outline: none; cursor: pointer; width: 100%; max-width: 250px; }
+        .month-picker input { 
+            padding: 8px 12px; border: 1px solid var(--input-border); border-radius: 6px; 
+            font-size: 1.1em; outline: none; cursor: pointer; width: 100%; max-width: 250px; 
+            background: var(--input-bg); color: var(--text-main);
+        }
 
         .balance-container { text-align: center; margin-bottom: 25px; }
-        .balance-container h4 { margin: 0; color: #7f8c8d; text-transform: uppercase; font-size: 0.9em; }
-        .balance-container h1 { margin: 10px 0; font-size: 2.5em; letter-spacing: 1px; word-wrap: break-word; }
+        .balance-container h4 { margin: 0; color: var(--text-muted); text-transform: uppercase; font-size: 0.9em; }
+        .balance-container h1 { margin: 10px 0; font-size: 2.5em; letter-spacing: 1px; word-wrap: break-word; color: var(--text-main);}
 
         .summary-cards { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 20px; }
         .summary-cards > div {
-            background: #fff; padding: 20px; border-radius: 8px; flex: 1;
-            text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #ecf0f1;
+            background: var(--card-bg); padding: 20px; border-radius: 8px; flex: 1;
+            text-align: center; box-shadow: var(--box-shadow); border: 1px solid var(--border-color);
         }
-        .summary-cards h4 { margin: 0 0 10px 0; font-size: 0.9em; color: #7f8c8d; text-transform: uppercase; }
+        .summary-cards h4 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--text-muted); text-transform: uppercase; }
         .summary-cards .income h3 { color: var(--success); margin: 0; font-size: 1.5em; word-wrap: break-word;}
         .summary-cards .expense h3 { color: var(--danger); margin: 0; font-size: 1.5em; word-wrap: break-word;}
 
         .charts-wrapper { display: flex; gap: 20px; margin-bottom: 25px; display: none; }
-        .chart-box { flex: 1; background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ecf0f1; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: none; }
-        .chart-toggle-btn { width: 100%; background: transparent; border: none; color: #7f8c8d; font-size: 0.85em; text-transform: uppercase; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 0; outline: none; }
+        .chart-box { flex: 1; background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--box-shadow); display: none; }
+        .chart-toggle-btn { width: 100%; background: transparent; border: none; color: var(--text-muted); font-size: 0.85em; text-transform: uppercase; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 0; outline: none; }
         .chart-toggle-btn:hover { color: var(--primary); }
         .toggle-icon { font-size: 1.2em; transition: 0.2s; }
         
         .chart-collapse { display: none; margin-top: 20px; width: 100%; }
         .chart-collapse.show { display: block; }
-        .canvas-container { position: relative; height: 300px; width: 100%; } /* Increased height for full screen */
+        .canvas-container { position: relative; height: 300px; width: 100%; } 
         
         .entry-row {
             display: flex; gap: 15px; margin-bottom: 12px; align-items: center;
-            background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px dashed #bdc3c7; flex-wrap: wrap; 
+            background: var(--item-alt-bg); padding: 15px; border-radius: 8px; border: 1px dashed var(--input-border); flex-wrap: wrap; 
         }
         
         input[type="text"], input[type="number"], input[type="date"], select {
-            padding: 12px; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 1em; outline: none; flex: 1; min-width: 140px;
+            padding: 12px; border: 1px solid var(--input-border); border-radius: 6px; font-size: 1em; outline: none; flex: 1; min-width: 140px;
+            background: var(--input-bg); color: var(--text-main);
         }
 
         .remove-row-btn { background: transparent; color: var(--danger); border: none; font-size: 1.2em; cursor: pointer; padding: 8px 12px; }
-        .remove-row-btn:hover { background: #e74c3c20; border-radius: 4px; }
+        .remove-row-btn:hover { background: rgba(231, 76, 60, 0.1); border-radius: 4px; }
 
         .actions { display: flex; gap: 15px; margin-bottom: 30px; }
         button { padding: 15px; border-radius: 6px; font-size: 1.05em; outline: none; border: none; cursor: pointer; font-weight: bold; flex: 1; transition: 0.2s; width: 100%; }
 
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-primary:hover { background-color: #1a252f; }
+        .btn-primary { background-color: var(--primary); color: var(--primary-text); }
+        .btn-primary:hover { opacity: 0.9; }
         .btn-secondary { background-color: #95a5a6; color: white; }
         .btn-secondary:hover { background-color: #7f8c8d; }
         
         .data-management { display: flex; gap: 15px; flex-wrap: wrap; }
-        .btn-excel { background-color: #27AE60; color: white; flex: 1; min-width: 150px; }
-        .btn-excel:hover { background-color: #219653; }
+        .btn-excel { background-color: var(--success); color: white; flex: 1; min-width: 150px; }
+        .btn-excel:hover { opacity: 0.9; }
         .btn-backup { background-color: #34495e; color: white; flex: 1; min-width: 120px; }
-        .btn-backup:hover { background-color: #2c3e50; }
+        .btn-backup:hover { opacity: 0.9; }
         .btn-restore { background-color: #f39c12; color: white; flex: 1; min-width: 120px; }
-        .btn-restore:hover { background-color: #e67e22; }
+        .btn-restore:hover { opacity: 0.9; }
         
-        h3.section-title { border-bottom: 1px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 15px; margin-top: 0; color: var(--primary); display: flex; justify-content: space-between; align-items: center;}
+        h3.section-title { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; margin-top: 0; color: var(--primary); display: flex; justify-content: space-between; align-items: center;}
         
-        #search-bar { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #bdc3c7; font-size: 1em; flex-shrink: 0; }
+        #search-bar { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--input-border); font-size: 1em; flex-shrink: 0; background: var(--input-bg); color: var(--text-main);}
 
         #list-container { flex: 1; overflow-y: auto; padding-right: 5px; }
         
-        .category-group { margin-bottom: 20px; background: #fff; border: 1px solid #ecf0f1; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
-        .category-header { background: var(--primary); color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .category-header .category-total { font-size: 0.9em; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; }
+        .category-group { margin-bottom: 20px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: var(--box-shadow);}
+        .category-header { background: var(--primary); color: var(--primary-text); padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .category-header .category-total { font-size: 0.9em; background: rgba(0,0,0,0.15); padding: 4px 8px; border-radius: 4px; }
         
-        .mini-chart-toggle { padding: 10px; background: #fafafa; border-bottom: 1px solid #ecf0f1; font-size: 0.8em;}
-        .category-chart-wrapper { background: #fff; padding: 15px; border-bottom: 1px solid #ecf0f1; }
+        .mini-chart-toggle { padding: 10px; background: var(--item-alt-bg); border-bottom: 1px solid var(--border-color); font-size: 0.8em;}
+        .category-chart-wrapper { background: var(--card-bg); padding: 15px; border-bottom: 1px solid var(--border-color); }
         .category-canvas-container { position: relative; height: 160px; width: 100%; }
 
         ul { list-style-type: none; padding: 0; margin: 0; }
-        li { background: white; border-bottom: 1px solid #ecf0f1; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid; }
+        li { background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid; }
         li:last-child { border-bottom: none; }
         li.plus { border-left-color: var(--success); }
         li.minus { border-left-color: var(--danger); }
         
         .transaction-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-        .transaction-date { font-size: 0.85em; color: #7f8c8d; font-weight: bold; }
-        .transaction-desc { font-size: 0.95em; color: #333; }
-        .transaction-amount { display: flex; align-items: center; gap: 15px; white-space: nowrap; font-weight: bold;}
+        .transaction-date { font-size: 0.85em; color: var(--text-muted); font-weight: bold; }
+        .transaction-desc { font-size: 0.95em; color: var(--text-main); }
+        .transaction-amount { display: flex; align-items: center; gap: 15px; white-space: nowrap; font-weight: bold; color: var(--text-main);}
 
         .item-actions { display: flex; gap: 5px; }
-        .edit-btn { background: #3498db20; color: #3498db; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.8em; }
+        .edit-btn { background: rgba(52, 152, 219, 0.15); color: #3498db; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.8em; }
         .edit-btn:hover { background: #3498db; color: white; }
-        .delete-btn { background: #e74c3c20; color: var(--danger); border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.8em; }
+        .delete-btn { background: rgba(231, 76, 60, 0.15); color: var(--danger); border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; font-size: 0.8em; }
         .delete-btn:hover { background: var(--danger); color: white; }
 
         /* Mobile View Adjustments */
@@ -185,7 +277,7 @@
             body { padding: 15px 10px; }
             .container { padding: 20px 15px; width: 100%; max-width: 600px; } 
             .app-layout { flex-direction: column; gap: 30px; }
-            .history-sidebar { width: 100%; position: static; max-height: none; background: transparent; padding: 0; border: none;}
+            .history-sidebar { width: 100%; position: static; max-height: none; background: transparent; padding: 0; border: none; box-shadow: none;}
             #list-container { max-height: 500px; } 
             .balance-container h1 { font-size: 2em; }
             .month-picker { flex-direction: column; text-align: center; gap: 10px; }
@@ -193,9 +285,9 @@
             .summary-cards { flex-direction: column; gap: 10px; }
             .summary-cards > div { width: 100%; }
             .charts-wrapper { flex-direction: column; } 
-            .canvas-container { height: 200px; } /* Shrink main charts back down for mobile */
+            .canvas-container { height: 200px; }
             .entry-row { flex-direction: column; align-items: stretch; }
-            .remove-row-btn { align-self: flex-end; background: #e74c3c15; margin-top: 5px; }
+            .remove-row-btn { align-self: flex-end; background: rgba(231, 76, 60, 0.1); margin-top: 5px; }
             .actions { flex-direction: column; }
             li { flex-direction: column; align-items: flex-start; gap: 10px; }
             .transaction-amount { width: 100%; justify-content: space-between; }
@@ -235,7 +327,19 @@
 </div>
 
 <div class="container">
-    <h2 class="main-title">Financial Tracker</h2>
+    <div class="header-top">
+        <h2 class="main-title">Financial Tracker</h2>
+        
+        <div class="theme-switch-wrapper">
+            <label class="theme-switch" for="checkbox">
+                <input type="checkbox" id="checkbox" />
+                <div class="slider">
+                    <span class="sun">☀️</span>
+                    <span class="moon">🌙</span>
+                </div>
+            </label>
+        </div>
+    </div>
     
     <div class="app-layout">
         <!-- LEFT PANEL: Dashboard & Controls -->
@@ -310,7 +414,7 @@
         <div class="history-sidebar">
             <h3 class="section-title">
                 <span>History</span>
-                <span id="history-month-label" style="font-size: 0.8em; color: #7f8c8d; font-weight: normal; text-align: right;"></span>
+                <span id="history-month-label" style="font-size: 0.8em; color: var(--text-muted); font-weight: normal; text-align: right;"></span>
             </h3>
             
             <input type="text" id="search-bar" placeholder="🔍 Search descriptions or categories..." autocomplete="off">
@@ -323,9 +427,9 @@
 <script>
     // =========================================================================
     // 🔧 APP VERSION & SMART UPDATE NOTES
-    // Version 1.6: Full-Screen Browser Layout!
+    // Version 1.7: Dark Mode UI!
     // =========================================================================
-    const CURRENT_VERSION = 1.6; 
+    const CURRENT_VERSION = 1.7; 
     
     const VERSION_HISTORY = [
         { version: 1.1, features: ["Added Custom Categories", "Dual Analytics", "Smart Search"] },
@@ -333,10 +437,36 @@
         { version: 1.3, features: ["Cleaner History List with Dropdown Accordions"] },
         { version: 1.4, features: ["Multi-Device Syncing: Backup and restore data across devices!"] },
         { version: 1.5, features: ["Side-by-Side UI for computer screens"] },
-        { version: 1.6, features: ["Full-Screen Dashboard: The tracker now expands to beautifully fill your entire computer monitor, just like a professional web app!"] }
+        { version: 1.6, features: ["Full-Screen Dashboard: The tracker now expands to beautifully fill your entire computer monitor."] },
+        { version: 1.7, features: ["Dark Mode: Slide the new sun/moon toggle at the top right to switch between light and dark themes!"] }
     ];
     // =========================================================================
 
+    // --- Dark Mode Logic ---
+    const themeToggle = document.getElementById('checkbox');
+    const savedTheme = localStorage.getItem('financial_tracker_theme');
+
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        if (savedTheme === 'dark') {
+            themeToggle.checked = true;
+        }
+    }
+
+    themeToggle.addEventListener('change', function(e) {
+        if (e.target.checked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('financial_tracker_theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('financial_tracker_theme', 'light');
+        }
+        // Force charts to redraw with new theme colors
+        init(); 
+    });
+
+
+    // --- Version and Agreement Logic ---
     const warningModal = document.getElementById('warning-modal');
     const agreeCheckbox = document.getElementById('agree-checkbox');
     const modalOkBtn = document.getElementById('modal-ok-btn');
@@ -346,14 +476,14 @@
     const updateList = document.getElementById('update-features-list');
 
     const hasAgreed = localStorage.getItem('financial_tracker_agreed');
-    const savedVersion = parseFloat(localStorage.getItem('financial_tracker_version')) || 1.0;
+    const savedAppVersion = parseFloat(localStorage.getItem('financial_tracker_version')) || 1.0;
 
     if (!hasAgreed) {
         warningModal.style.display = 'flex';
         localStorage.setItem('financial_tracker_version', CURRENT_VERSION);
-    } else if (savedVersion < CURRENT_VERSION) {
+    } else if (savedAppVersion < CURRENT_VERSION) {
         updateList.innerHTML = '';
-        const missedUpdates = VERSION_HISTORY.filter(update => update.version > savedVersion);
+        const missedUpdates = VERSION_HISTORY.filter(update => update.version > savedAppVersion);
         
         missedUpdates.forEach(update => {
             update.features.forEach(feature => {
@@ -420,6 +550,15 @@
 
     const defaultCategories = ["Transport", "Utilities", "Food", "Entertainment", "Health", "Shopping", "Salary", "Business"];
     const miniChartColors = ['#3498DB', '#E74C3C', '#2ECC71', '#F1C40F', '#9B59B6', '#E67E22', '#1ABC9C', '#34495E', '#D35400', '#2980B9'];
+
+    // Helper function to get correct chart colors based on current theme
+    function getChartThemeSettings() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return {
+            textColor: isDark ? '#e0e0e0' : '#7f8c8d',
+            borderColor: isDark ? '#1e1e1e' : '#ffffff'
+        };
+    }
 
     function formatLKR(amount) {
         const sign = amount < 0 ? '-' : '';
@@ -540,13 +679,15 @@
     }
 
     function renderGroupedTransactions(monthTransactions) {
+        const themeVars = getChartThemeSettings();
+
         Object.values(categoryChartInstances).forEach(chart => chart.destroy());
         categoryChartInstances = {};
         
         listContainer.innerHTML = '';
         
         if (monthTransactions.length === 0) {
-            listContainer.innerHTML = '<p style="text-align: center; color: #95a5a6; margin-top: 20px;">No records match.</p>';
+            listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); margin-top: 20px;">No records match.</p>';
             return;
         }
 
@@ -648,14 +789,21 @@
                         data: data,
                         backgroundColor: miniChartColors,
                         borderWidth: 2,
-                        borderColor: '#fff'
+                        borderColor: themeVars.borderColor
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 10, font: {size: 11} } },
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                boxWidth: 10, 
+                                font: {size: 11},
+                                color: themeVars.textColor 
+                            } 
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -672,6 +820,8 @@
     }
 
     function updateCharts(monthTransactions) {
+        const themeVars = getChartThemeSettings();
+
         const incomeCtx = document.getElementById('incomeChart').getContext('2d');
         const expenseCtx = document.getElementById('expenseChart').getContext('2d');
         
@@ -713,14 +863,22 @@
                     datasets: [{
                         data: Object.values(incomeTotals),
                         backgroundColor: incomeColors,
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: themeVars.borderColor
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } },
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 12, 
+                                font: {size: 11},
+                                color: themeVars.textColor 
+                            } 
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -759,14 +917,22 @@
                     datasets: [{
                         data: Object.values(expenseTotals),
                         backgroundColor: expenseColors,
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: themeVars.borderColor
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: {size: 11} } },
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 12, 
+                                font: {size: 11},
+                                color: themeVars.textColor 
+                            } 
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
