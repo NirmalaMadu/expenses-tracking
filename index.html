@@ -103,7 +103,8 @@
             border: none; font-weight: bold; cursor: pointer; transition: 0.2s;
             background: var(--primary); color: white;
         }
-        .modal-btn:hover { filter: brightness(1.2); }
+        .modal-btn:disabled { background: #bdc3c7; cursor: not-allowed; color: #7f8c8d; }
+        .modal-btn:not(:disabled):hover { filter: brightness(1.2); }
 
         /* --- Main App Layout --- */
         .container {
@@ -490,6 +491,15 @@
         return `${amount < 0 ? '-' : ''}LKR ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
+    // NEW HELPER: Gets the exact current date correctly
+    function getDefaultDate() {
+        const selected = monthSelector.value;
+        const currentToday = new Date();
+        const currentMonthStr = `${currentToday.getFullYear()}-${String(currentToday.getMonth() + 1).padStart(2, '0')}`;
+        const currentDateStr = currentToday.toISOString().split('T')[0];
+        return (selected === currentMonthStr) ? currentDateStr : `${selected}-01`; 
+    }
+
     function toggleChart(collapseId, btnElement, chartKey) {
         const collapseDiv = document.getElementById(collapseId);
         const iconSpan = btnElement.querySelector('.toggle-icon');
@@ -509,7 +519,7 @@
         const row = document.createElement('div');
         row.classList.add('entry-row');
         row.innerHTML = `
-            <input type="date" class="date-input" required value="${monthSelector.value}-01">
+            <input type="date" class="date-input" required value="${getDefaultDate()}">
             <input type="text" class="category-input" placeholder="Category" required autocomplete="off" list="category-suggestions">
             <input type="text" class="text-input" placeholder="Name" required autocomplete="off" list="description-suggestions">
             <input type="number" class="amount-input" placeholder="Amount" required step="0.01" min="0.01">
@@ -592,7 +602,7 @@
             });
 
             const totals = g.items.reduce((acc, t) => { acc[t.text] = (acc[t.text] || 0) + Math.abs(t.amount); return acc; }, {});
-            new Chart(document.getElementById(miniChartId).getContext('2d'), {
+            categoryChartInstances[miniChartId] = new Chart(document.getElementById(miniChartId).getContext('2d'), {
                 type: 'pie',
                 data: { labels: Object.keys(totals), datasets: [{ data: Object.values(totals), backgroundColor: miniChartColors, borderWidth: 0 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: currentThemeColors } } } }
@@ -647,7 +657,47 @@
         updateCharts(mTrans);
     }
 
+    // FIXED: The missing Export to Excel function is back!
+    function exportToExcel() {
+        const selectedMonth = monthSelector.value;
+        const monthTransactions = transactions.filter(t => t.month === selectedMonth);
+        
+        if (monthTransactions.length === 0) return alert("There are no transactions to export for this month!");
+
+        monthTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const netBalanceVal = balance.innerText;
+        const totalEarningsVal = money_plus.innerText;
+        const totalExpensesVal = money_minus.innerText;
+        const monthLabelText = historyMonthLabel.innerText;
+
+        const excelRows = [
+            ["MONTHLY FINANCIAL SUMMARY", "", "", "", ""],
+            ["Month:", monthLabelText, "", "", ""],
+            ["", "", "", "", ""],
+            ["SUMMARY", "", "", "", ""],
+            ["Net Balance", netBalanceVal, "", "", ""],
+            ["Total Earnings", totalEarningsVal, "", "", ""],
+            ["Total Expenses", totalExpensesVal, "", "", ""],
+            ["", "", "", "", ""],
+            ["TRANSACTION DETAILS", "", "", "", ""],
+            ["Date", "Category", "Description", "Type", "Amount"] 
+        ];
+
+        monthTransactions.forEach(t => {
+            const typeDisplay = t.amount < 0 ? "Expense (-)" : "Earning (+)";
+            excelRows.push([t.date, t.category, t.text, typeDisplay, formatLKR(t.amount)]);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Financial Summary");
+
+        XLSX.writeFile(workbook, `Financial_Summary_${monthLabelText.replace(/ /g, "_")}.xlsx`);
+    }
+
     function deleteTransaction(id) { transactions = transactions.filter(t => t.id !== id); localStorage.setItem('monthly_transactions', JSON.stringify(transactions)); init(); }
+    
     function editTransaction(id) {
         const t = transactions.find(t => t.id === id); if(!t) return;
         const row = rowsContainer.firstElementChild;
@@ -659,7 +709,7 @@
         deleteTransaction(id); window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // --- ENHANCED BACKUP & RESTORE SECURITY ---
+    // ENHANCED: Backup using Blob technology to prevent mobile browser corruption
     function backupData() {
         if(transactions.length === 0) return alert("You don't have any data to backup yet!");
         const payload = {
@@ -667,20 +717,35 @@
             security_gate: localStorage.getItem('tracker_password') || "",
             data: transactions
         };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
-        const dlNode = document.createElement('a'); dlNode.setAttribute("href", dataStr);
+        
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const dlNode = document.createElement('a'); 
+        dlNode.setAttribute("href", url);
         dlNode.setAttribute("download", `tracker_secure_backup.json`);
-        document.body.appendChild(dlNode); dlNode.click(); dlNode.remove();
+        document.body.appendChild(dlNode); 
+        dlNode.click(); 
+        dlNode.remove();
+        URL.revokeObjectURL(url); // Clean up memory
     }
 
     function triggerRestore() { restoreFileInput.click(); }
+    
+    // ENHANCED: Restore engine that reads both regular JSON and cleans up corrupted strings
     function processRestore(event) {
         const file = event.target.files[0]; if (!file) return;
+        
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const imported = JSON.parse(e.target.result);
-                // Check if file is from the enhanced schema or the old flat format
+                let fileContent = e.target.result;
+                
+                // Smart Fallback: Clean up corrupted browser files
+                if (fileContent.startsWith("data:text/json")) {
+                    fileContent = decodeURIComponent(fileContent.split(",")[1]);
+                }
+                
+                const imported = JSON.parse(fileContent);
                 const rawTransactions = imported.data ? imported.data : imported;
                 const filePassword = imported.security_gate ? imported.security_gate : "";
 
@@ -698,8 +763,13 @@
                         }
                         location.reload();
                     }
-                } else alert("Corrupted profile data file.");
-            } catch(err) { alert("Error reading system file."); }
+                } else {
+                    alert("Corrupted profile data file.");
+                }
+            } catch(err) { 
+                alert("Error reading system file. Please ensure you are uploading a valid backup."); 
+                console.error(err);
+            }
             restoreFileInput.value = "";
         };
         reader.readAsText(file);
@@ -720,12 +790,25 @@
         updateValues(); renderGroupedTransactions(filtered); updateSuggestions();
     }
 
+    // ALL event listeners safely connected
     addRowBtn.addEventListener('click', createRowDOM);
+    exportExcelBtn.addEventListener('click', exportToExcel); // Now perfectly reconnected
     backupBtn.addEventListener('click', backupData);
     restoreBtn.addEventListener('click', triggerRestore);
     restoreFileInput.addEventListener('change', processRestore);
     searchBar.addEventListener('input', init);
-    monthSelector.addEventListener('change', init);
+    
+    // Fixed month selector listener to update dates
+    monthSelector.addEventListener('change', () => {
+        searchBar.value = ''; 
+        document.querySelectorAll('.chart-collapse').forEach(el => el.classList.remove('show'));
+        document.querySelectorAll('.toggle-icon').forEach(icon => icon.innerText = '▼');
+        init();
+        const syncDate = getDefaultDate();
+        document.querySelectorAll('.date-input').forEach(input => {
+            input.value = syncDate;
+        });
+    });
 
     createRowDOM();
     init();
